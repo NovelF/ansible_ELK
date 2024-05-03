@@ -1,0 +1,150 @@
+  - name: Instalar y configurar Elasticsearch 
+  hosts: all
+  tasks:
+    - name: Instalar curl 
+      apt:
+        name: curl
+        state: present
+      become: yes
+
+    - name: Descargar la clave GPG pública de Elasticsearch
+      get_url:
+        url: https://artifacts.elastic.co/GPG-KEY-elasticsearch
+        dest: /tmp/GPG-KEY-elasticsearch
+        mode: '0644'
+
+    - name: Agregar la clave GPG pública de Elasticsearch
+      apt_key:
+        url: https://artifacts.elastic.co/GPG-KEY-elasticsearch
+        state: present
+      become: yes
+
+    - name: Agregar el repositorio de Elastic
+      apt_repository:
+        repo: deb https://artifacts.elastic.co/packages/7.x/apt stable main
+        state: present
+
+    - name: Actualizar las listas de paquetes de Elastic
+      apt:
+        update_cache: yes
+      become: yes
+
+    - name: Instalar Elasticsearch
+      apt:
+        name: elasticsearch=7.17.18
+        state: present
+
+    - name: Verificar la existencia del archivo de configuración de Elasticsearch
+      stat:
+        path: /etc/elasticsearch/elasticsearch.yml
+      register: es_config_file
+
+    - name: Editar el archivo de configuración de Elasticsearch
+      lineinfile:
+        path: /etc/elasticsearch/elasticsearch.yml
+        line: |
+          network.bind_host: ["127.0.0.1", "{{ ansible_default_ipv4.address }}"] 
+          discovery.type: single-node
+          xpack.security.enabled: true
+          xpack.security.authc.api_key.enabled: true
+        regexp: "^(#network\\.host: localhost|discovery.type: .+|xpack.security.enabled: .+|xpack.security.authc.api_key.enabled: .+)"
+      become: yes
+      when: es_config_file.stat.exists
+
+    - name: Iniciar el servicio de Elasticsearch
+      service:
+        name: elasticsearch
+        state: started
+        enabled: yes
+
+- name: Configuración de contraseñas de Elasticsearch
+  hosts: all
+  become: yes
+  tasks:
+    - name: Ejecutar script para establecer contraseñas de Elasticsearch
+      shell: |
+        ./elasticsearch-setup-passwords interactive <<EOF
+        y
+        elastic
+        elastic
+        elastic
+        elastic
+        elastic
+        elastic
+        elastic
+        elastic
+        elastic
+        elastic
+        elastic
+        elastic
+        elastic
+        elastic
+        elastic
+        elastic
+        elastic
+        elastic
+        elastic
+        elastic
+        EOF
+      args:
+        chdir: /usr/share/elasticsearch/bin
+
+- name: Instalar y configurar Kibana 
+  hosts: all
+  become: true
+  tasks:
+    - name: Agregar la clave GPG de Elastic
+      apt_key:
+        url: https://artifacts.elastic.co/GPG-KEY-elasticsearch
+
+    - name: Agregar el repositorio de Kibana a la lista de fuentes de paquetes de apt
+      apt_repository:
+        repo: deb https://artifacts.elastic.co/packages/7.x/apt stable main
+        state: present
+
+    - name: Actualizar el índice de paquetes de apt
+      apt:
+        update_cache: yes
+
+    - name: Instalar Kibana
+      apt:
+        name: kibana=7.17.18
+        state: present
+
+    - name: Habilitar y arrancar el servicio de Kibana
+      service:
+        name: kibana
+        state: started
+        enabled: yes
+
+    - name: Generar claves de cifrado para Kibana
+      shell: /usr/share/kibana/bin/kibana-encryption-keys generate -q
+      args:
+        executable: /bin/bash
+      register: kibana_encryption_keys
+
+    - name: Agregar las claves de cifrado a la configuración de Kibana
+      lineinfile:
+        path: /etc/kibana/kibana.yml
+        line: "{{ item }}"
+        insertafter: EOF
+      loop: "{{ kibana_encryption_keys.stdout_lines }}"
+      when: kibana_encryption_keys is succeeded
+
+    - name: Configurar la dirección IP privada en Kibana
+      lineinfile:
+        path: /etc/kibana/kibana.yml
+        line: "server.host: {{ ansible_default_ipv4.address }}"
+
+    - name: Añadir usuario de Elasticsearch a Kibana
+      lineinfile:
+        path: /etc/kibana/kibana.yml
+        line: "{{ item }}"
+      loop:
+        - "elasticsearch.username: kibana_system"
+        - "elasticsearch.password: elastic"
+
+    - name: Reiniciar el servicio de Kibana
+      service:
+        name: kibana
+        state: restarted
