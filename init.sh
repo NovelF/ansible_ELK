@@ -2,6 +2,7 @@
 
 # Función para copiar la clave SSH al usuario remoto
 copy_ssh_key() {
+    sudo apt install sshpass -y > /dev/null
     # Solicitar la dirección IP del equipo remoto
     read -p "Introduce la dirección IP del equipo remoto: " remote_ip
 
