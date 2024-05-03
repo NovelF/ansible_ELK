@@ -1,0 +1,5 @@
+[suricata]
+mi_host ansible_host=192.168.127.171
+
+[elastic]
+mi_host_elasticK ansible_host2=192.168.127.120
