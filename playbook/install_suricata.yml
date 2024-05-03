@@ -1,0 +1,102 @@
+---
+- hosts: suricata
+  become: true
+  tasks:
+    # 1. Agregar el repositorio PPA de Suricata
+    - name: Agregar repositorio PPA de Suricata
+      ansible.builtin.apt_repository:
+        repo: ppa:oisf/suricata-stable
+        state: present
+    - name: Repositorio FIlebeat
+      shell: wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | sudo apt-key add -
+
+    - name: Repositorio FIlebeat 2 
+      shell: sudo apt-get install apt-transport-https
+
+    - name: Repositorio FIlebeat 3
+      shell: echo "deb https://artifacts.elastic.co/packages/7.x/apt stable main" | sudo tee -a /etc/apt/sources.list.d/elastic-7.x.list
+
+    - name: Repositorio FIlebeat 3
+      shell: apt update
+    
+    # 2. Instalación de Suricata, jq y curl
+    - name: Instalar Suricata, jq y curl
+      apt:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - suricata
+        - jq
+        - curl
+        - wget
+        - filebeat=7.17.18   
+    # 3. Reemplazar archivo de configuración de Suricata
+    - name: Descargar archivo de configuración de Suricata
+      ansible.builtin.get_url:
+       url: "https://raw.githubusercontent.com/NovelF/ASIX-Project/main/suricata.yaml"
+       dest: /etc/suricata/suricata.yaml
+
+    # 4. Copiar /etc/default/suricata
+    - name: Copiar archivo /etc/default/suricata
+      ansible.builtin.get_url:
+       url: "https://raw.githubusercontent.com/NovelF/ASIX-Project/main/suricata"
+       dest: /etc/default/suricata
+
+    # 4. Copiar reglas
+    - name: Copiar Reglas
+      ansible.builtin.get_url:
+       url: "https://raw.githubusercontent.com/NovelF/ASIX-Project/main/rules/all.rules"
+       dest: /usr/share/suricata/rules/
+    - name: Copiar Reglas
+      ansible.builtin.get_url:
+       url: "https://raw.githubusercontent.com/NovelF/ASIX-Project/main/rules/drop.rules"
+       dest: /usr/share/suricata/rules/
+
+    
+    # 5. Modo IPS - Reiniciar Suricata
+    - name: Modo IPS - Reiniciar Suricata
+      service:
+        name: suricata
+        state: restarted
+
+
+    # 7. Copiar /etc/ufw/before.rules
+    - name: Copiar archivo /etc/ufw/before.rules
+      ansible.builtin.get_url:
+       url: "https://raw.githubusercontent.com/NovelF/ASIX-Project/main/before.rules"
+       dest: /etc/ufw/before.rule
+
+   # 8. Copiar /etc/filebeat/filebeat.yml.j2
+    - name: Copiar archivo /etc/filebeat/filebeat.yml
+      ansible.builtin.get_url:
+       url: "https://raw.githubusercontent.com/NovelF/ASIX-Project/main/filebeat.yml"
+       dest: /etc/filebeat/filebeat.yml
+       
+    
+     # 9. Copiar /etc/filebeat/filebeat.yml
+
+    - name: Reemplazar IP en archivo de configuración de Filebeat
+      ansible.builtin.replace:
+       path: /etc/filebeat/filebeat.yml
+       regexp: '{{ "{{" }} ip_address1 {{ "}}" }}'
+       replace: "{{ hostvars['mi_host_elasticK']['ansible_host2'] }}"
+
+
+      # 9. Copiar /etc/filebeat/filebeat.yml
+
+    - name: Reemplazar IP en archivo de configuración de Filebeat
+      ansible.builtin.replace:
+       path: /etc/filebeat/filebeat.yml
+       regexp: '{{ "{{" }} ip_address2 {{ "}}" }}'
+       replace: "{{ hostvars['mi_host_elasticK']['ansible_host2'] }}"
+
+    - name: Este comando cambiará
+      shell: filebeat setup --pipelines --modules suricata -M "suricata.eve.enabled=true" -c /etc/filebeat/filebeat.yml
+
+    # 10. Reiniciar Filebeat
+    - name: Modo IPS - Reiniciar Filebeat
+      service:
+        name: filebeat
+        state: restarted
+    - name: Habilitar UFW
+      command: ufw --force enable
