@@ -1,6 +1,7 @@
 # ansible_ELK
 
 Primero remplazaremos con nuestras ips el archivo de hosts.
+
 ![image](https://github.com/m0rd3caii/ansible_ELK/assets/142639542/0b9c57d2-f6b5-43a9-93c4-16ce7f22cf78)
 
 Segundo remplazaremos el segundo archivo de hosts "hosts2" con la ip de elastic y kibana.
