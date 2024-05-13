@@ -1,0 +1,67 @@
+---
+- hosts: mis_hosts
+  become: true
+  tasks:
+    - name: Instalar curl
+      apt:
+        name: curl
+        state: present
+      become: yes
+
+    - name: Repositorio FIlebeat 3
+      shell: curl -L -O https://artifacts.elastic.co/downloads/beats/auditbeat/auditbeat-7.17.20-amd64.deb
+    - name: Repositorio FIlebeat 3
+      shell: sudo dpkg -i auditbeat-7.17.20-amd64.deb 
+
+    # 2. Instalación de Audit y Auditbeat
+    - name: Instalar Audit y Auditbeat
+      apt:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - auditd
+        - auditbeat
+
+    # 3. Descargar archivo de configuración de Auditbeat
+    - name: Descargar archivo de configuración de Auditbeat
+      ansible.builtin.get_url:
+        url: "https://raw.githubusercontent.com/NovelF/ASIX-Project/main/auditbeat.yml"
+        dest: /etc/auditbeat/auditbeat.yml
+
+    # 4. Reemplazar IP en archivo de configuración de Auditbeat
+    - name: Reemplazar IP en archivo de configuración de Auditbeat
+      ansible.builtin.replace:
+        path: /etc/auditbeat/auditbeat.yml
+        regexp: 'host: "ip_address2:5601"'
+        replace: "host: '{{ hostvars['mi_host_elasticK']['ansible_host2'] }}:5601'"
+  
+    - name: Reemplazar IP en archivo de configuración de Auditbeat (Elasticsearch)
+      ansible.builtin.replace:
+        path: /etc/auditbeat/auditbeat.yml
+        regexp: 'ip_address2'
+        replace: '{{ hostvars["mi_host_elasticK"]["ansible_host2"] }}'
+    # 5. Copiar configuración de Auditd
+    - name: Copiar Configuracion Auditd
+      ansible.builtin.get_url:
+        url: "https://raw.githubusercontent.com/NovelF/ASIX-Project/main/auditd.conf"
+        dest: /etc/audit/auditd.conf
+
+    # 6. Copiar reglas de Audit
+    - name: Copiar Reglas Audit
+      ansible.builtin.get_url:
+        url: "https://raw.githubusercontent.com/NovelF/ASIX-Project/main/audit.rules"
+        dest: /etc/audit/rules.d/audit.rules
+    
+#    - name: Este comando cambiará
+#      shell: sudo auditbeat setup -e
+    # 7. Reiniciar Auditbeat
+    - name: Modo IPS - Reiniciar auditbeat
+      service:
+        name: auditbeat
+        state: restarted
+
+    # 8. Reiniciar audit
+    - name: Modo IPS - Reiniciar audit
+      service:
+        name: auditd
+        state: restarted
