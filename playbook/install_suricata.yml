@@ -29,7 +29,7 @@
         - jq
         - curl
         - wget
-        - filebeat=7.17.18   
+        - filebeat=7.17.18
     # 3. Reemplazar archivo de configuración de Suricata
     - name: Descargar archivo de configuración de Suricata
       ansible.builtin.get_url:
@@ -42,6 +42,8 @@
        url: "https://raw.githubusercontent.com/NovelF/ASIX-Project/main/suricata"
        dest: /etc/default/suricata
 
+    - name: Crear Directorio rules
+      shell: sudo mkdir /etc/suricata/rules
     # 4. Copiar reglas
     - name: Copiar Reglas
       ansible.builtin.get_url:
@@ -51,6 +53,10 @@
       ansible.builtin.get_url:
        url: "https://raw.githubusercontent.com/NovelF/ASIX-Project/main/rules/drop.rules"
        dest: /usr/share/suricata/rules/
+    - name: Copiar Reglas
+      ansible.builtin.get_url:
+       url: "https://raw.githubusercontent.com/NovelF/ASIX-Project/main/rules/drop.rules"
+       dest: /etc/suricata/rules/my.rules
 
     
     # 5. Modo IPS - Reiniciar Suricata
@@ -58,7 +64,6 @@
       service:
         name: suricata
         state: restarted
-
 
     # 7. Copiar /etc/ufw/before.rules
     - name: Copiar archivo /etc/ufw/before.rules
@@ -72,19 +77,17 @@
        url: "https://raw.githubusercontent.com/NovelF/ASIX-Project/main/filebeat.yml"
        dest: /etc/filebeat/filebeat.yml
        
-    
-     # 9. Copiar /etc/filebeat/filebeat.yml
-
-    - name: Reemplazar IP en archivo de configuración de Filebeat
+   # 9. Copiar /etc/filebeat/filebeat.yml
+    - name: Reemplazar IP en archivo de configuración de Filebeat ELASTIC
       ansible.builtin.replace:
        path: /etc/filebeat/filebeat.yml
        regexp: '{{ "{{" }} ip_address1 {{ "}}" }}'
-       replace: "{{ hostvars['mi_host_elasticK']['ansible_host2'] }}"
+       replace: '{{ hostvars["mi_host_elasticK"]["ansible_host2"] }}'
 
 
       # 9. Copiar /etc/filebeat/filebeat.yml
 
-    - name: Reemplazar IP en archivo de configuración de Filebeat
+    - name: Reemplazar IP en archivo de configuración de Filebeat KIBANA
       ansible.builtin.replace:
        path: /etc/filebeat/filebeat.yml
        regexp: '{{ "{{" }} ip_address2 {{ "}}" }}'
