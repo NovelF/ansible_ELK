@@ -1,5 +1,8 @@
 [suricata]
-mi_host ansible_host=
-
+mi_host ansible_host= $Remplaza_IP_SURICATA
 [elastic]
-mi_host_elasticK ansible_host2=
+mi_host_elasticK ansible_host2=$Remplaza_IP_ELASTIC
+
+[mis_hosts]
+$Remplaza_IP_SURICATA
+$Remplaza_IP_ELASTIC
