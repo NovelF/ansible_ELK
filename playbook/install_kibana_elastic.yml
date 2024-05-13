@@ -1,5 +1,5 @@
-  - name: Instalar y configurar Elasticsearch 
-  hosts: all
+---  
+- hosts: all
   tasks:
     - name: Instalar curl 
       apt:
@@ -93,14 +93,14 @@
   hosts: all
   become: true
   tasks:
-    - name: Agregar la clave GPG de Elastic
-      apt_key:
-        url: https://artifacts.elastic.co/GPG-KEY-elasticsearch
-
-    - name: Agregar el repositorio de Kibana a la lista de fuentes de paquetes de apt
-      apt_repository:
-        repo: deb https://artifacts.elastic.co/packages/7.x/apt stable main
-        state: present
+#    - name: Agregar la clave GPG de Elastic
+#      apt_key:
+#        url: https://artifacts.elastic.co/GPG-KEY-elasticsearch
+#
+#    - name: Agregar el repositorio de Kibana a la lista de fuentes de paquetes de apt
+#      apt_repository:
+#        repo: deb https://artifacts.elastic.co/packages/7.x/apt stable main
+#        state: present
 
     - name: Actualizar el índice de paquetes de apt
       apt:
@@ -147,4 +147,43 @@
     - name: Reiniciar el servicio de Kibana
       service:
         name: kibana
+        state: restarted
+
+    - name: Instalar FIlebeat
+      apt:
+        name: filebeat=7.17.18
+        state: present
+      become: yes
+
+       # 8. Copiar /etc/filebeat/filebeat.yml.j2
+    - name: Copiar archivo /etc/filebeat/filebeat.yml
+      ansible.builtin.get_url:
+       url: "https://raw.githubusercontent.com/NovelF/ASIX-Project/main/filebeat.yml"
+       dest: /etc/filebeat/filebeat.yml
+
+
+         # 9. Copiar /etc/filebeat/filebeat.yml
+
+    - name: Reemplazar IP en archivo de configuración de Filebeat ELASTIC
+      ansible.builtin.replace:
+       path: /etc/filebeat/filebeat.yml
+       regexp: '{{ "{{" }} ip_address1 {{ "}}" }}'
+       replace: '{{ hostvars["maquina1"]["ansible_host"] }}'
+
+
+      # 9. Copiar /etc/filebeat/filebeat.yml
+
+    - name: Reemplazar IP en archivo de configuración de Filebeat KIBANA
+      ansible.builtin.replace:
+       path: /etc/filebeat/filebeat.yml
+       regexp: '{{ "{{" }} ip_address2 {{ "}}" }}'
+       replace: "{{ hostvars['maquina1']['ansible_host'] }}"
+
+    - name: Este comando cambiará
+      shell: sudo filebeat setup -e
+
+         # 10. Reiniciar Filebeat
+    - name: Reiniciar Filebeat
+      service:
+        name: filebeat
         state: restarted
