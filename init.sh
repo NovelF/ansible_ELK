@@ -2,7 +2,6 @@
 
 # Función para copiar la clave SSH al usuario remoto
 copy_ssh_key() {
-    sudo apt install sshpass -y > /dev/null
     # Solicitar la dirección IP del equipo remoto
     read -p "Introduce la dirección IP del equipo remoto: " remote_ip
 
@@ -19,7 +18,7 @@ copy_ssh_key() {
 
     # Copiar la clave pública al usuario del equipo remoto
     echo "Copiando clave SSH al usuario $remote_user del equipo remoto $remote_ip..."
-    sshpass -p "$remote_password" ssh-copy-id "$remote_user@$remote_ip" > /dev/null
+    sshpass -p "$remote_password" ssh-copy-id "$remote_user@$remote_ip" -f > /dev/null
 
 
     if [ $? -eq 0 ]; then
@@ -32,8 +31,9 @@ copy_ssh_key() {
 
 # Función para ejecutar el playbook con sudo
 run_playbook() {
-    sudo ansible-playbook playbook/install_kibana_elastic.yml  -i inventory/hosts2
-    sudo ansible-playbook playbook/install_suricata.yml  -i inventory/hosts
+    sudo ansible-playbook playbook/install_kibana_elastic.yml  -i ./inventory/hosts2
+    sudo ansible-playbook playbook/audit.yml  -i ./inventory/hosts
+    sudo ansible-playbook playbook/install_suricata.yml  -i ./inventory/hosts
 }
 
 # Menú principal
