@@ -93,15 +93,6 @@
   hosts: all
   become: true
   tasks:
-#    - name: Agregar la clave GPG de Elastic
-#      apt_key:
-#        url: https://artifacts.elastic.co/GPG-KEY-elasticsearch
-#
-#    - name: Agregar el repositorio de Kibana a la lista de fuentes de paquetes de apt
-#      apt_repository:
-#        repo: deb https://artifacts.elastic.co/packages/7.x/apt stable main
-#        state: present
-
     - name: Actualizar el índice de paquetes de apt
       apt:
         update_cache: yes
